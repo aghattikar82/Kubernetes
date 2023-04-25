@@ -1,0 +1,57 @@
+Kubernetes Networking
+Topics Are:
+Services, Ingress, Network Policies, DNS, CNI Plugins
+Services
+Services provide a way to expose a set of pods to the network. 
+A service is an abstract way to expose an application running on a set of Pods as a network service. 
+A Service can be exposed in a variety of ways such as ClusterIP, NodePort, and LoadBalancer.
+
+ClusterIP Service
+ClusterIP Services are used for communication between Pods within the same Kubernetes cluster.
+The Service gets exposed on a static IP that's unique within the cluster.
+When you make a request to that IP, the Service takes care of redirecting traffic to one of the Pods it's associated with. 
+And if there's more than one Pod, the Service will automatically balance the traffic, 
+so no single Pod gets bogged down by too many requests.
+
+NodePort Service
+The NodePort Service is useful when you need to expose your application to external clients.
+This means all traffic that is coming from outside of the cluster.
+When you create a NodePort Service, Kubernetes opens a port (in the range of 30000 and 32767) on all of its worker nodes.
+Note that the same port number is used across all of them. All traffic incoming to the worker node's IP address, 
+and that specific port, is redirected to a Pod linked with that Service.
+
+LoadBalancer Service
+A LoadBalancer Service is another way you can expose your application to external clients. 
+However, it only works when you're using Kubernetes on a cloud platform that supports this Service type.
+The LoadBalancer Service detects the cloud computing platform on which the cluster is running and creates 
+an appropriate load balancer in the cloud provider’s infrastructure. The load balancer will have its own unique, 
+publicly accessible IP address. For example, if the cluster is running on Amazon Web Services (AWS),
+the Service will create an Elastic Load Balancer (ELB) to distribute incoming traffic across multiple nodes in the cluster.
+
+ExternalName Service
+An ExternalName Service in Kubernetes is useful when you have a service that is running outside your Kubernetes cluster, 
+such as a database, and you want to access it from within your cluster.
+
+Kubernetes Ingress
+It is the same in the Kubernetes world as well. Ingress means the traffic that enters
+the cluster and egress is the traffic that exits the cluster.
+Ingress is a native Kubernetes resource like pods, deployments, etc.
+Using ingress, you can maintain the DNS routing configurations.
+The ingress controller does the actual routing by reading the routing rules from ingress objects stored in etcd.
+
+Kubernetes Network Policies
+This is Kubernetes assets that control the traffic between pods. 
+Kubernetes network policy lets developers secure access to and from their applications.
+This is how we can restrict a user for access.
+Any request that is successfully authenticated (including an anonymous request) is then authorized.
+The default authorization mode is always allowed, which allows all requests. 
+In Kubernetes, you must be authenticated (logged in) before your request can be authorized (granted permission to access).
+
+DNS :
+Kubernetes creates DNS records for Services and Pods. You can contact Services with consistent DNS names instead of IP addresses.
+Kubelet configures Pods' DNS so that running containers can lookup Services by name rather than IP.
+
+CNI PLUGINS:
+Container Network Interface, a Cloud Native Computing Foundation venture,
+comprises of detail and libraries for writing plugins to configure network interfaces in Linux containers
+
