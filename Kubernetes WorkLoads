@@ -1,0 +1,239 @@
+Kubernetes Deployment with YAML
+
+YAML (which stands for YAML Ain’t Markup Language) is a language used to provide configuration for software,
+and is the main type of input for Kubernetes configurations. It is human-readable and can be authored in any text editor. 
+A Kubernetes user or administrator specifies data in a YAML file, typically to define a Kubernetes object.
+The YAML configuration is called a “manifest”, and when it is “applied” to a Kubernetes cluster, Kubernetes creates an object based on the configuration.
+The Deployment object not only creates the pods but also ensures the correct number of pods is always running in the cluster,
+handles scalability, and takes care of updates to the pods on an ongoing basis. All these activities can be configured through fields in the Deployment YAML.
+
+Kubernetes Deployment YAML Examples
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: web
+spec:
+  selector:
+    matchLabels:
+      app: web
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+       —name: nginx
+          image: nginx
+          ports:
+           —containerPort: 80
+           
+spec.replicas—specifies how many pods to run
+
+strategy.type—specifies which deployment strategy should be used. In this case and in the following examples we select RollingUpdate, 
+which means new versions are rolled out gradually to pods to avoid downtime.
+spec.template.spec.containers—specifies which container image to run in each of the pods and ports to expose.
+
+With Resource Limits
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: web
+spec:
+  selector:
+    matchLabels:
+      app: web
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+       —name: nginx
+          image: nginx
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          ports:
+           —containerPort: 80
+           
+limits—each container should not be allowed to consume more than 200Mi of memory.
+
+requests—each container requires 100m of CPU resources and 200Mi of memory on the node.
+
+Kubernetes StatefulSets
+
+StatefulSet is the workload API object used to manage stateful applications.
+Manages the deployment and scaling of a set of Pods, and provides guarantees about the ordering and uniqueness of these Pods.
+Like a Deployment, a StatefulSet manages Pods that are based on an identical container spec.
+Unlike a Deployment, a StatefulSet maintains a sticky identity for each of its Pods.
+These pods are created from the same spec, but are not interchangeable: each has a persistent identifier that it maintains across any rescheduling.
+
+apiVersion: apps/v
+kind: StatefulSet
+metadata:
+  name: example-statefulset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: example
+  serviceName: example
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - name: example
+        image: example:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+ 
+kubectl apply -f example-statefulset.yaml 
+
+Kubernetes DaemonSet with YAML
+A DaemonSet ensures that all (or some) Nodes run a copy of a Pod. As nodes are added to the cluster,
+Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected. Deleting a DaemonSet will clean up the Pods it created.
+
+Some typical uses of a DaemonSet are:
+running a cluster storage daemon on every node
+
+running a logs collection daemon on every node
+
+running a node monitoring daemon on every node
+In a simple case, one DaemonSet, covering all nodes, would be used for each type of daemon. 
+A more complex setup might use multiple DaemonSets for a single type of daemon, 
+but with different flags and/or different memory and cpu requests for different hardware types.
+
+Create a DaemonSet based on the YAML file:
+kubectl apply -f https://k8s.io/examples/controllers/daemonset.yaml
+demonsetfile.yaml:
+  name: fluentd-elasticsearc
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/logh
+
+kubectl get pod -A
+
+
+Kubernetes Jobs with YAML
+A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate. 
+As pods successfully complete, the Job tracks the successful completions. When a specified number of successful completions is reached, 
+the task (ie, Job) is complete. Deleting a Job will clean up the Pods it created. Suspending a Job will delete its active Pods until the
+Job is resumed again.
+A simple case is to create one Job object in order to reliably run one Pod to completion.
+The Job object will start a new Pod if the first Pod fails or is deleted (for example due to a node hardware failure or a node reboot).
+You can also use a Job to run multiple Pods in parallel.
+
+apiVersion: batch/v
+kind: Job
+metadata:
+  name: pi
+spec:
+  template:
+    spec:
+      containers:
+      - name: pi
+        image: perl:5.34.0
+        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+  backoffLimit: 4
+
+kubectl apply -f pi.yaml
+
+kubectl logs jobs/pi
+
+Kubernetes CRONJOBS With YAML
+A CronJob creates Jobs on a repeating schedule.
+CronJob is meant for performing regular scheduled actions such as backups, report generation, and so on. 
+One CronJob object is like one line of a crontab (cron table) file on a Unix system. It runs a job periodically on a given schedule, 
+written in Cron format.
+CronJobs have limitations and idiosyncrasies. For example, in certain circumstances, a single CronJob can create multiple concurrent Jobs.
+See the limitations below.
+
+apiVersion: batch/v
+kind: CronJob
+metadata:
+  name: abc
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: abc
+            image: busybox:1.28
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - date; echo abc from the Kubernetes cluster
+          restartPolicy: OnFailure
+
+
+
+kubectl apply -f abc.yaml
+
+kubectl get pod -A
